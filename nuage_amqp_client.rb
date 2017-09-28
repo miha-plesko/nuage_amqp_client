@@ -22,10 +22,10 @@ require 'optparse'
 
 class NuageMB < Qpid::Proton::Handler::MessagingHandler
 
-  def initialize(url, topic, opts)
+  def initialize(url, topics, opts)
     super()
     @url = url
-    @topic = topic
+    @topics = topics
     @opts = opts
     @test_connection = @opts.delete(:test_connection)
   end
@@ -33,7 +33,7 @@ class NuageMB < Qpid::Proton::Handler::MessagingHandler
   def on_start(event)
     event.container.container_id = "Ruby AMQP"
     conn = event.container.connect(@url, @opts)
-    event.container.create_receiver(conn, :source => @topic)
+    @topics.each { |topic| event.container.create_receiver(conn, :source => "topic://#{topic}") }
     puts "started"
   end
 
@@ -67,6 +67,6 @@ options = {
   :test_connection           => false}
 
 hw = NuageMB.new(ENV['NUAGE_AMQP'],
-                 "topic://topic/CNAMessages",
+                 ["topic/CNAMessages", "topic/CNAAlarms"],
                  options)
 Qpid::Proton::Reactor::Container.new(hw).run
