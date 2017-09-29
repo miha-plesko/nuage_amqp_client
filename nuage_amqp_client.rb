@@ -48,7 +48,7 @@ class NuageMB < Qpid::Proton::Handler::MessagingHandler
   end
 
   def on_connection_error(event)
-    raise Exception("Connection error")
+    raise StandardError, "Connection error"
   end
 
   def on_message(event)
@@ -57,7 +57,7 @@ class NuageMB < Qpid::Proton::Handler::MessagingHandler
   end
 
   def on_transport_error(event)
-    raise "Connection error: #{event.transport.condition}"
+    raise StandardError, "Connection error: #{event.transport.condition}"
   end
 end
 
@@ -66,7 +66,15 @@ options = {
   :sasl_allow_insecure_mechs => true,
   :test_connection           => false}
 
-hw = NuageMB.new(ENV['NUAGE_AMQP'],
-                 ["topic/CNAMessages", "topic/CNAAlarms"],
-                 options)
-Qpid::Proton::Reactor::Container.new(hw).run
+loop do
+  begin
+    hw = NuageMB.new(ENV['NUAGE_AMQP'],
+        ["topic/CNAMessage", "topic/CNAAlarms"],
+        options)
+    Qpid::Proton::Reactor::Container.new(hw).run
+  rescue
+    puts "Caught exception"
+  end
+
+  sleep 2
+end
