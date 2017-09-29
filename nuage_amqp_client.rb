@@ -72,8 +72,8 @@ loop do
         ["topic/CNAMessage", "topic/CNAAlarms"],
         options)
     Qpid::Proton::Reactor::Container.new(hw).run
-  rescue
-    puts "Caught exception"
+  rescue => e
+    puts "Caught exception #{e}"
   end
 
   sleep 2
