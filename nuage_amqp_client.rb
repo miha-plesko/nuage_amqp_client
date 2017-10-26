@@ -22,9 +22,8 @@ require 'optparse'
 
 class NuageMB < Qpid::Proton::Handler::MessagingHandler
 
-  def initialize(url, topics, opts)
+  def initialize(topics, opts)
     super()
-    @url = url
     @topics = topics
     @opts = opts
     @test_connection = @opts.delete(:test_connection)
@@ -32,13 +31,12 @@ class NuageMB < Qpid::Proton::Handler::MessagingHandler
 
   def on_start(event)
     event.container.container_id = "Ruby AMQP"
-    conn = event.container.connect(@url, @opts)
+    conn = event.container.connect(@opts)
     @topics.each { |topic| event.container.create_receiver(conn, :source => "topic://#{topic}") }
     puts "started"
   end
 
   def on_connection_opened(event)
-#    super
     puts "opened"
     event.container.stop if @test_connection
   end
@@ -48,29 +46,29 @@ class NuageMB < Qpid::Proton::Handler::MessagingHandler
   end
 
   def on_connection_error(event)
-    raise StandardError, "Connection error"
+    puts "on_connection_error"
   end
 
   def on_message(event)
     puts event.message.body
-    #event.connection.close
   end
 
   def on_transport_error(event)
-    raise StandardError, "Connection error: #{event.transport.condition}"
+    puts "on_transport_error"
   end
 end
+
+urls = [ENV['NUAGE_AMQP']]
 
 options = {
   :sasl_allowed_mechs        => "PLAIN", 
   :sasl_allow_insecure_mechs => true,
-  :test_connection           => false}
+  :test_connection           => false,
+  :urls                      => urls}
 
 loop do
   begin
-    hw = NuageMB.new(ENV['NUAGE_AMQP'],
-        ["topic/CNAMessage", "topic/CNAAlarms"],
-        options)
+    hw = NuageMB.new(["topic/CNAMessages", "topic/CNAAlarms"], options)
     Qpid::Proton::Reactor::Container.new(hw).run
   rescue => e
     puts "Caught exception #{e}"
